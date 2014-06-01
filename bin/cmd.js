@@ -32,7 +32,8 @@ var scrobbles, convert, out;
 
 scrobbles = new LastfmExportStream({
 	apiKey: 'cd42f85a9b8085627ef7b2c148157425',
-	user: argv.u
+	user: argv.u,
+	tracksPerRequest: 200
 });
 
 switch (argv.f) {
