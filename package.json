@@ -5,6 +5,10 @@
   "bin": {
     "lastfmexport": "bin/cmd.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/maxkueng/lastfmexport.git"
+  },
   "keywords": [
     "lastfm",
     "tracks",
