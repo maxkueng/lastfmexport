@@ -1,0 +1,28 @@
+{
+  "name": "lastfmexport",
+  "version": "0.0.1",
+  "description": "Command-line utility to export a Last.fm user's scrobbles to file",
+  "bin": {
+    "lastfmexport": "bin/cmd.js"
+  },
+  "keywords": [
+    "lastfm",
+    "tracks",
+    "scrobble",
+    "export"
+  ],
+  "author": "Max Kueng <me@maxkueng.com> (http://maxkueng.com/)",
+  "licenses": [
+    {
+      "type": "MIT",
+      "url": "https://github.com/maxkueng/lastfmexportstream/raw/master/LICENSE"
+    }
+  ],
+  "dependencies": {
+    "lastfmexportstream": "0.0.4",
+    "minimist": "^0.1.0",
+    "moment": "^2.6.0",
+    "progress": "^1.1.5",
+    "through2": "^0.4.2"
+  }
+}

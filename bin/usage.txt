@@ -1,0 +1,15 @@
+Export Last.fm Scrobbles to file
+
+Usage: lastfmexport [options]
+   or: lastfmexport -u <username>
+   or: lastfmexport -u <username> -o <filepath>
+   or: lastfmexport -u <username> -f csv -o -
+
+Options:
+
+ -h  or  --help:        Show this help message
+ -u  or  --user:        Last.fm username
+ -f  or  --format:      Output format: jsonld or csv. 
+                        Default: jsonld
+ -o  or  --outfile:     Output file path. Specifying '-' will print to stdout.
+                        Default: <username>.<format>
