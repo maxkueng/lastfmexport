@@ -28,7 +28,7 @@ if (!argv.f) { argv.f = 'jsonld'; }
 if (!argv.o) { argv.o = argv.u + '.' + argv.f; }
 if (argv.o !== '-') { argv.o = path.resolve(argv.o); }
 
-var scrobbles, convert, out;
+var scrobbles, convert, out, progress;
 
 scrobbles = new LastfmExportStream({
 	apiKey: 'cd42f85a9b8085627ef7b2c148157425',
@@ -37,36 +37,13 @@ scrobbles = new LastfmExportStream({
 });
 
 switch (argv.f) {
-	case 'csv':
-		convert = (function () {
-			var first = true;
-			return through.obj(function (track, enc, callback) {
-				if (first) {
-					first = false;
-					this.push([ 'Time', 'Artist', 'Title', 'Album',
-						'Track MBID', 'Artist MBID', 'Album MBID'
-					].join('\t') + EOL)
-				}
-
-				var data = [ track.time, track.artist, track.title, track.album,
-				   track.trackMBID, track.artistMBID, track.albumMBID];
-
-				data = data.map(function (field) {
-					return String(field).replace(/\t/g, ' ');
-				});
-
-				this.push(data.join('\t') + EOL);
-				callback();
-			});
-		})();
-		break;
 	case 'tsv':
+	case 'csv':
+		convert = makeCSVStream();
+		break;
 	case 'jsonld':
 	default:
-		convert = through.obj(function (track, enc, callback) {
-			this.push(JSON.stringify(track) + EOL);
-			callback();
-		});
+		convert = makeJSONLDStream();
 		break;
 }
 
@@ -76,28 +53,7 @@ if (argv.o === '-') {
 	out = fs.createWriteStream(argv.o, { encoding: 'utf8' });
 }
 
-var progress = (function () {
-	var bar;
-	var started = false;
-
-	return through.obj(function (track, enc, callback) {
-		if (!started && scrobbles.totalTracks) {
-			started = true;
-			bar = new ProgressBar('  ' + path.basename(argv.o) + ' [:bar] :percent :etas', {
-				complete: '=',
-				incomplete: ' ',
-				width: 20,
-				total: scrobbles.totalTracks
-			});
-		}
-
-		bar.tick();
-
-		this.push(track);
-		callback();
-	});
-
-})();
+progress = makeProgressStream();
 
 scrobbles.pipe(progress).pipe(convert).pipe(out);
 
@@ -112,4 +68,59 @@ function usage (code) {
 function exit (msg) {
 	console.error(msg);
 	process.exit(1);
+}
+
+function makeCSVStream () {
+	return (function () {
+		var first = true;
+		return through.obj(function (track, enc, callback) {
+			if (first) {
+				first = false;
+				this.push([ 'Time', 'Artist', 'Title', 'Album',
+					'Track MBID', 'Artist MBID', 'Album MBID'
+				].join('\t') + EOL)
+			}
+
+			var data = [ track.time, track.artist, track.title, track.album,
+			   track.trackMBID, track.artistMBID, track.albumMBID];
+
+			data = data.map(function (field) {
+				return String(field).replace(/\t/g, ' ');
+			});
+
+			this.push(data.join('\t') + EOL);
+			callback();
+		});
+	})();
+}
+
+function makeJSONLDStream () {
+	return through.obj(function (track, enc, callback) {
+		this.push(JSON.stringify(track) + EOL);
+		callback();
+	});
+}
+
+function makeProgressStream () {
+	return (function () {
+		var bar;
+		var started = false;
+
+		return through.obj(function (track, enc, callback) {
+			if (!started && scrobbles.totalTracks) {
+				started = true;
+				bar = new ProgressBar('  ' + path.basename(argv.o) + ' [:bar] :percent :etas', {
+					complete: '=',
+					incomplete: ' ',
+					width: 20,
+					total: scrobbles.totalTracks
+				});
+			}
+
+			bar.tick();
+
+			this.push(track);
+			callback();
+		});
+	})();
 }
