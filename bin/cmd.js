@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+var moment = require('moment');
 var minimist = require('minimist');
 var ProgressBar = require('progress');
 var through = require('through2');
@@ -28,13 +29,29 @@ if (!argv.f) { argv.f = 'jsonld'; }
 if (!argv.o) { argv.o = argv.u + '.' + argv.f; }
 if (argv.o !== '-') { argv.o = path.resolve(argv.o); }
 
+argv.s = (argv.s) ? moment.utc(argv.s) : null;
+argv.e = (argv.e) ? moment.utc(argv.e) : null;
+
+if (argv.s && !argv.s.isValid()) {
+	return exit('Invalid start time. Try -h for help.');
+}
+if (argv.e && !argv.e.isValid()) {
+	return exit('Invalid end time. Try -h for help.');
+}
+
+// Streams
 var scrobbles, convert, out, progress;
 
-scrobbles = new LastfmExportStream({
+var lfmOptions = {
 	apiKey: 'cd42f85a9b8085627ef7b2c148157425',
 	user: argv.u,
 	tracksPerRequest: 200
-});
+};
+
+if (argv.s) { lfmOptions.from = +argv.s; }
+if (argv.e) { lfmOptions.to = +argv.e; }
+
+scrobbles = new LastfmExportStream(lfmOptions);
 
 switch (argv.f) {
 	case 'tsv':

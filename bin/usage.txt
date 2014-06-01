@@ -3,13 +3,18 @@ Export Last.fm Scrobbles to file
 Usage: lastfmexport [options]
    or: lastfmexport -u <username>
    or: lastfmexport -u <username> -o <filepath>
+   or: lastfmexport -u <username> -s '2014-06-01T00:00:00'
    or: lastfmexport -u <username> -f csv -o -
 
 Options:
 
  -h  or  --help:        Show this help message
  -u  or  --user:        Last.fm username
- -f  or  --format:      Output format: jsonld or csv. 
+ -f  or  --format:      Output format: jsonld or csv
                         Default: jsonld
+ -s  or  --start:       ISO date string in UTC of the first scrobble
+                        Default: none. Will start from beginning of scrobble history
+ -e  or  --end:         ISO date string in UTC of the latest scrobble
+                        Default: none. Will end with last scrobble
  -o  or  --outfile:     Output file path. Specifying '-' will print to stdout.
                         Default: <username>.<format>
