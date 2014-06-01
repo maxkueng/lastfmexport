@@ -23,8 +23,8 @@ __Options:__
  - `-f  or --format`: Output format: jsonld or csv. Default: jsonld
  - `-o  or --outfile`: Output file path. Specifying '-' will print to stdout. Default: <username>.<format>
 
- ### License
+### License
 
- MIT License
+MIT License
 
- Copyright (c) 2014 Max Kueng (http://maxkueng.com/)
+Copyright (c) 2014 Max Kueng (http://maxkueng.com/)
