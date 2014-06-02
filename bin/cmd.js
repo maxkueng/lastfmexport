@@ -22,10 +22,10 @@ var argv = minimist(process.argv.slice(2), {
 
 if (argv.h) { return usage(0); }
 if (!argv.u) { return exit('Missing username. Try -h for help.'); }
-if (argv.f && argv.f !== 'jsonld' && argv.f !== 'csv' && argv.f !== 'tsv') {
+if (argv.f && argv.f !== 'ldjson' && argv.f !== 'csv' && argv.f !== 'tsv') {
 	return exit('Unknown format \'' + argv.f + '\'. Try -h for help.');
 }
-if (!argv.f) { argv.f = 'jsonld'; }
+if (!argv.f) { argv.f = 'ldjson'; }
 if (!argv.o) { argv.o = argv.u + '.' + argv.f; }
 if (argv.o !== '-') { argv.o = path.resolve(argv.o); }
 
@@ -58,9 +58,9 @@ switch (argv.f) {
 	case 'csv':
 		convert = makeCSVStream();
 		break;
-	case 'jsonld':
+	case 'ldjson':
 	default:
-		convert = makeJSONLDStream();
+		convert = makeLDJSONStream();
 		break;
 }
 
@@ -111,7 +111,7 @@ function makeCSVStream () {
 	})();
 }
 
-function makeJSONLDStream () {
+function makeLDJSONStream () {
 	return through.obj(function (track, enc, callback) {
 		this.push(JSON.stringify(track) + EOL);
 		callback();

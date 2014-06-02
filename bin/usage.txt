@@ -10,8 +10,8 @@ Options:
 
  -h  or  --help:        Show this help message
  -u  or  --user:        Last.fm username
- -f  or  --format:      Output format: jsonld or csv
-                        Default: jsonld
+ -f  or  --format:      Output format: ldjson or csv
+                        Default: ldjson
  -s  or  --start:       ISO date string in UTC of the first scrobble
                         Default: none. Will start from beginning of scrobble history
  -e  or  --end:         ISO date string in UTC of the latest scrobble
