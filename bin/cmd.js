@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 var moment = require('moment');
-var minimist = require('minimist');
 var ProgressBar = require('progress');
 var through = require('through2');
 var LastfmExportStream = require('lastfmexportstream');
@@ -9,33 +8,41 @@ var fs = require('fs');
 var path = require('path');
 var EOL = require('os').EOL;
 
-var argv = minimist(process.argv.slice(2), {
-	alias: {
-		h: 'help',
-		u: 'user',
-		f: 'format',
-		s: 'start',
-		e: 'end',
-		o: 'outfile'
-	}
-});
+var defaults = fs.readFileSync(path.join(__dirname, '../defaults.yml'), 'utf-8');
 
-if (argv.h) { return usage(0); }
-if (!argv.u) { return exit('Missing username. Try -h for help.'); }
-if (argv.f && argv.f !== 'ldjson' && argv.f !== 'csv' && argv.f !== 'tsv') {
-	return exit('Unknown format \'' + argv.f + '\'. Try -h for help.');
+var aliases = {
+	h: 'help',
+	u: 'user',
+	f: 'format',
+	s: 'start',
+	e: 'end',
+	o: 'outfile'
+};
+
+var conf = require('rucola')('lastfmexport', defaults, aliases);
+
+if (conf.help) { return usage(0); }
+if (!conf.user) { return exit('Missing username. Try -h for help.'); }
+
+var supportedFormats = [ 'ldjson', 'csv', 'tsv' ];
+
+if (supportedFormats.indexOf(conf.format) === -1) {
+	return exit('Unknown format \'' + conf.format + '\'. Try -h for help.');
 }
-if (!argv.f) { argv.f = 'ldjson'; }
-if (!argv.o) { argv.o = argv.u + '.' + argv.f; }
-if (argv.o !== '-') { argv.o = path.resolve(argv.o); }
 
-argv.s = (argv.s) ? moment.utc(argv.s) : null;
-argv.e = (argv.e) ? moment.utc(argv.e) : null;
+var outFile = conf.outfile || conf.user + '.' + conf.format;
 
-if (argv.s && !argv.s.isValid()) {
+if (outFile !== '-') {
+	outFile = path.resolve(outFile);
+}
+
+var startTime = conf.start ? moment.utc(conf.start) : null;
+var endTime = (conf.end) ? moment.utc(conf.end) : null;
+
+if (startTime && !startTime.isValid()) {
 	return exit('Invalid start time. Try -h for help.');
 }
-if (argv.e && !argv.e.isValid()) {
+if (endTime && !endTime.isValid()) {
 	return exit('Invalid end time. Try -h for help.');
 }
 
@@ -44,16 +51,16 @@ var scrobbles, convert, out, progress;
 
 var lfmOptions = {
 	apiKey: 'cd42f85a9b8085627ef7b2c148157425',
-	user: argv.u,
+	user: conf.user,
 	tracksPerRequest: 200
 };
 
-if (argv.s) { lfmOptions.from = +argv.s; }
-if (argv.e) { lfmOptions.to = +argv.e; }
+if (startTime) { lfmOptions.from = +startTime; }
+if (endTime) { lfmOptions.to = +endTime; }
 
 scrobbles = new LastfmExportStream(lfmOptions);
 
-switch (argv.f) {
+switch (conf.format) {
 	case 'tsv':
 	case 'csv':
 		convert = makeCSVStream();
@@ -64,10 +71,10 @@ switch (argv.f) {
 		break;
 }
 
-if (argv.o === '-') {
+if (outFile === '-') {
 	out = process.stdout;
 } else {
-	out = fs.createWriteStream(argv.o, { encoding: 'utf8' });
+	out = fs.createWriteStream(outFile, { encoding: 'utf8' });
 }
 
 progress = makeProgressStream();
@@ -126,7 +133,7 @@ function makeProgressStream () {
 		return through.obj(function (track, enc, callback) {
 			if (!started && scrobbles.totalTracks) {
 				started = true;
-				bar = new ProgressBar('  ' + path.basename(argv.o) + ' [:bar] :percent :etas', {
+				bar = new ProgressBar('  ' + path.basename(outFile) + ' [:bar] :percent :etas', {
 					complete: '=',
 					incomplete: ' ',
 					width: 20,
