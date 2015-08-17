@@ -1,6 +1,6 @@
 {
   "name": "lastfmexport",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "Command-line utility to export a Last.fm user's scrobbles to file",
   "bin": {
     "lastfmexport": "bin/cmd.js"
