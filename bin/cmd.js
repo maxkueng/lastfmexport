@@ -1,157 +1,156 @@
 #!/usr/bin/env node
-
-var ArgumentParser = require('argparse').ArgumentParser;
-var moment = require('moment');
-var ProgressBar = require('progress');
-var packageInfo = require('../package');
-var through = require('through2');
-var LastfmExportStream = require('lastfmexportstream');
-var fs = require('fs');
-var path = require('path');
-var EOL = require('os').EOL;
+var ArgumentParser = require('argparse').ArgumentParser
+var EOL = require('os').EOL
+var fs = require('fs')
+var LastfmExportStream = require('lastfmexportstream')
+var moment = require('moment')
+var packageInfo = require('../package')
+var path = require('path')
+var ProgressBar = require('progress')
+var through = require('through2')
 
 var argparser = new ArgumentParser({
-	addHelp: true,
-	description: packageInfo.description,
-	version: packageInfo.version
-});
+  addHelp: true,
+  description: packageInfo.description,
+  version: packageInfo.version
+})
 
 argparser.addArgument(['-u', '--user'], {
-	type: 'string',
-	help: 'Last.fm username.',
-	required: true
-});
+  type: 'string',
+  help: 'Last.fm username.',
+  required: true
+})
 
 argparser.addArgument(['-f', '--format'], {
-	type: 'string',
-	help: 'Output format, defaults to ldjson.',
-	choices: ['ldjson', 'csv', 'tsv'],
-	defaultValue: 'ldjson'
-});
+  type: 'string',
+  help: 'Output format, defaults to ldjson.',
+  choices: ['ldjson', 'csv', 'tsv'],
+  defaultValue: 'ldjson'
+})
 
 argparser.addArgument(['-s', '--start'], {
-	type: 'string',
-	help: 'ISO date string in UTC of the first scrobble.',
-});
+  type: 'string',
+  help: 'ISO date string in UTC of the first scrobble.',
+})
 
 argparser.addArgument(['-e', '--end'], {
-	type: 'string',
-	help: 'ISO date string in UTC of the latest scrobble.',
-});
+  type: 'string',
+  help: 'ISO date string in UTC of the latest scrobble.',
+})
 
 argparser.addArgument(['-o', '--outfile'], {
-	type: 'string',
-	help: 'Output file path. Specifying "-" will print to stdout. Defaults to "<username>.<format>".',
-});
+  type: 'string',
+  help: 'Output file path. Specifying "-" will print to stdout. Defaults to "<username>.<format>".',
+})
 
-var conf = argparser.parseArgs();
-var outFile = conf.outfile || conf.user + '.' + conf.format;
+var conf = argparser.parseArgs()
+var outFile = conf.outfile || conf.user + '.' + conf.format
 
 if (outFile !== '-') {
-	outFile = path.resolve(outFile);
+  outFile = path.resolve(outFile)
 }
 
-var startTime = conf.start ? moment.utc(conf.start) : null;
-var endTime = conf.end ? moment.utc(conf.end) : null;
+var startTime = conf.start ? moment.utc(conf.start) : null
+var endTime = conf.end ? moment.utc(conf.end) : null
 
 if (startTime && !startTime.isValid()) {
-	exit('Invalid start time. Try -h for help.');
+  exit('Invalid start time. Try -h for help.')
 }
 if (endTime && !endTime.isValid()) {
-	exit('Invalid end time. Try -h for help.');
+  exit('Invalid end time. Try -h for help.')
 }
 
 // Streams
-var scrobbles, convert, out, progress;
+var scrobbles, convert, out, progress
 
 var lfmOptions = {
-	apiKey: 'cd42f85a9b8085627ef7b2c148157425',
-	user: conf.user,
-	tracksPerRequest: 200
-};
+  apiKey: 'cd42f85a9b8085627ef7b2c148157425',
+  user: conf.user,
+  tracksPerRequest: 200
+}
 
 if (startTime) { lfmOptions.from = +startTime; }
 if (endTime) { lfmOptions.to = +endTime; }
 
-scrobbles = new LastfmExportStream(lfmOptions);
+scrobbles = new LastfmExportStream(lfmOptions)
 
 switch (conf.format) {
-	case 'tsv':
-	case 'csv':
-		convert = makeCSVStream();
-		break;
-	case 'ldjson':
-	default:
-		convert = makeLDJSONStream();
-		break;
+  case 'tsv':
+  case 'csv':
+    convert = makeCSVStream()
+    break
+  case 'ldjson':
+  default:
+    convert = makeLDJSONStream()
+    break
 }
 
 if (outFile === '-') {
-	out = process.stdout;
+  out = process.stdout
 } else {
-	out = fs.createWriteStream(outFile, { encoding: 'utf8' });
+  out = fs.createWriteStream(outFile, {encoding: 'utf8'})
 }
 
-progress = makeProgressStream();
+progress = makeProgressStream()
 
-scrobbles.pipe(progress).pipe(convert).pipe(out);
+scrobbles.pipe(progress).pipe(convert).pipe(out)
 
 function exit (msg) {
-	console.error(msg);
-	process.exit(1);
+  console.error(msg)
+  process.exit(1)
 }
 
 function makeCSVStream () {
-	return (function () {
-		var first = true;
-		return through.obj(function (track, enc, callback) {
-			if (first) {
-				first = false;
-				this.push([ 'Time', 'Artist', 'Title', 'Album',
-					'Track MBID', 'Artist MBID', 'Album MBID'
-				].join('\t') + EOL)
-			}
+  return (function () {
+    var first = true
+    return through.obj(function (track, enc, callback) {
+      if (first) {
+        first = false
+        this.push([ 'Time', 'Artist', 'Title', 'Album',
+            'Track MBID', 'Artist MBID', 'Album MBID'
+          ].join('\t') + EOL)
+      }
 
-			var data = [ track.time, track.artist, track.title, track.album,
-			   track.trackMBID, track.artistMBID, track.albumMBID];
+      var data = [track.time, track.artist, track.title, track.album,
+        track.trackMBID, track.artistMBID, track.albumMBID]
 
-			data = data.map(function (field) {
-				return String(field).replace(/\t/g, ' ');
-			});
+      data = data.map(function (field) {
+        return String(field).replace(/\t/g, ' ')
+      })
 
-			this.push(data.join('\t') + EOL);
-			callback();
-		});
-	})();
+      this.push(data.join('\t') + EOL)
+      callback()
+    })
+  })()
 }
 
 function makeLDJSONStream () {
-	return through.obj(function (track, enc, callback) {
-		this.push(JSON.stringify(track) + EOL);
-		callback();
-	});
+  return through.obj(function (track, enc, callback) {
+    this.push(JSON.stringify(track) + EOL)
+    callback()
+  })
 }
 
 function makeProgressStream () {
-	return (function () {
-		var bar;
-		var started = false;
+  return (function () {
+    var bar
+    var started = false
 
-		return through.obj(function (track, enc, callback) {
-			if (!started && scrobbles.totalTracks) {
-				started = true;
-				bar = new ProgressBar('  ' + path.basename(outFile) + ' [:bar] :percent :etas', {
-					complete: '=',
-					incomplete: ' ',
-					width: 20,
-					total: scrobbles.totalTracks
-				});
-			}
+    return through.obj(function (track, enc, callback) {
+      if (!started && scrobbles.totalTracks) {
+        started = true
+        bar = new ProgressBar('  ' + path.basename(outFile) + ' [:bar] :percent :etas', {
+          complete: '=',
+          incomplete: ' ',
+          width: 20,
+          total: scrobbles.totalTracks
+        })
+      }
 
-			bar.tick();
+      bar.tick()
 
-			this.push(track);
-			callback();
-		});
-	})();
+      this.push(track)
+      callback()
+    })
+  })()
 }
