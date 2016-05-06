@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 var ArgumentParser = require('argparse').ArgumentParser
+var csvWriter = require('csv-write-stream')
 var EOL = require('os').EOL
 var fs = require('fs')
 var LastfmExportStream = require('lastfmexportstream')
@@ -77,7 +78,7 @@ scrobbles = new LastfmExportStream(lfmOptions)
 switch (conf.format) {
   case 'tsv':
   case 'csv':
-    convert = makeCSVStream()
+    convert = csvWriter()
     break
   case 'ldjson':
   default:
@@ -98,30 +99,6 @@ scrobbles.pipe(progress).pipe(convert).pipe(out)
 function exit (msg) {
   console.error(msg)
   process.exit(1)
-}
-
-function makeCSVStream () {
-  return (function () {
-    var first = true
-    return through.obj(function (track, enc, callback) {
-      if (first) {
-        first = false
-        this.push([ 'Time', 'Artist', 'Title', 'Album',
-            'Track MBID', 'Artist MBID', 'Album MBID'
-          ].join('\t') + EOL)
-      }
-
-      var data = [track.time, track.artist, track.title, track.album,
-        track.trackMBID, track.artistMBID, track.albumMBID]
-
-      data = data.map(function (field) {
-        return String(field).replace(/\t/g, ' ')
-      })
-
-      this.push(data.join('\t') + EOL)
-      callback()
-    })
-  })()
 }
 
 function makeLDJSONStream () {
