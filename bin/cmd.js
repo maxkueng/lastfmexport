@@ -1,150 +1,133 @@
 #!/usr/bin/env node
+var ArgumentParser = require('argparse').ArgumentParser
+var csvWriter = require('csv-write-stream')
+var EOL = require('os').EOL
+var fs = require('fs')
+var LastfmExportStream = require('lastfmexportstream')
+var moment = require('moment')
+var packageInfo = require('../package')
+var path = require('path')
+var ProgressBar = require('progress')
+var through = require('through2')
 
-var moment = require('moment');
-var ProgressBar = require('progress');
-var through = require('through2');
-var LastfmExportStream = require('lastfmexportstream');
-var fs = require('fs');
-var path = require('path');
-var EOL = require('os').EOL;
+var argparser = new ArgumentParser({
+  addHelp: true,
+  description: packageInfo.description,
+  version: packageInfo.version
+})
 
-var defaults = fs.readFileSync(path.join(__dirname, '../defaults.yml'), 'utf-8');
+argparser.addArgument(['-u', '--user'], {
+  type: 'string',
+  help: 'Last.fm username.',
+  required: true
+})
 
-var aliases = {
-	h: 'help',
-	u: 'user',
-	f: 'format',
-	s: 'start',
-	e: 'end',
-	o: 'outfile'
-};
+argparser.addArgument(['-f', '--format'], {
+  type: 'string',
+  help: 'Output format, defaults to ldjson.',
+  choices: ['ldjson', 'csv', 'tsv'],
+  defaultValue: 'ldjson'
+})
 
-var conf = require('rucola')('lastfmexport', defaults, aliases);
+argparser.addArgument(['-s', '--start'], {
+  type: 'string',
+  help: 'ISO date string in UTC of the first scrobble.',
+})
 
-if (conf.help) { return usage(0); }
-if (!conf.user) { return exit('Missing username. Try -h for help.'); }
+argparser.addArgument(['-e', '--end'], {
+  type: 'string',
+  help: 'ISO date string in UTC of the latest scrobble.',
+})
 
-var supportedFormats = [ 'ldjson', 'csv', 'tsv' ];
+argparser.addArgument(['-o', '--outfile'], {
+  type: 'string',
+  help: 'Output file path. Specifying "-" will print to stdout. Defaults to "<username>.<format>".',
+})
 
-if (supportedFormats.indexOf(conf.format) === -1) {
-	return exit('Unknown format \'' + conf.format + '\'. Try -h for help.');
-}
-
-var outFile = conf.outfile || conf.user + '.' + conf.format;
+var conf = argparser.parseArgs()
+var outFile = conf.outfile || conf.user + '.' + conf.format
 
 if (outFile !== '-') {
-	outFile = path.resolve(outFile);
+  outFile = path.resolve(outFile)
 }
 
-var startTime = conf.start ? moment.utc(conf.start) : null;
-var endTime = (conf.end) ? moment.utc(conf.end) : null;
+var startTime = conf.start ? moment.utc(conf.start) : null
+var endTime = conf.end ? moment.utc(conf.end) : null
 
 if (startTime && !startTime.isValid()) {
-	return exit('Invalid start time. Try -h for help.');
+  exit('Invalid start time. Try -h for help.')
 }
 if (endTime && !endTime.isValid()) {
-	return exit('Invalid end time. Try -h for help.');
+  exit('Invalid end time. Try -h for help.')
 }
 
 // Streams
-var scrobbles, convert, out, progress;
+var scrobbles, convert, out, progress
 
 var lfmOptions = {
-	apiKey: 'cd42f85a9b8085627ef7b2c148157425',
-	user: conf.user,
-	tracksPerRequest: 200
-};
+  apiKey: 'cd42f85a9b8085627ef7b2c148157425',
+  user: conf.user,
+  tracksPerRequest: 200
+}
 
 if (startTime) { lfmOptions.from = +startTime; }
 if (endTime) { lfmOptions.to = +endTime; }
 
-scrobbles = new LastfmExportStream(lfmOptions);
+scrobbles = new LastfmExportStream(lfmOptions)
 
 switch (conf.format) {
-	case 'tsv':
-	case 'csv':
-		convert = makeCSVStream();
-		break;
-	case 'ldjson':
-	default:
-		convert = makeLDJSONStream();
-		break;
+  case 'tsv':
+  case 'csv':
+    convert = csvWriter()
+    break
+  case 'ldjson':
+  default:
+    convert = makeLDJSONStream()
+    break
 }
 
 if (outFile === '-') {
-	out = process.stdout;
+  out = process.stdout
 } else {
-	out = fs.createWriteStream(outFile, { encoding: 'utf8' });
+  out = fs.createWriteStream(outFile, {encoding: 'utf8'})
 }
 
-progress = makeProgressStream();
+progress = makeProgressStream()
 
-scrobbles.pipe(progress).pipe(convert).pipe(out);
-
-function usage (code) {
-	var rs = fs.createReadStream(__dirname + '/usage.txt');
-	rs.pipe(process.stdout);
-	rs.on('end', function () {
-		if (code !== 0) process.exit(code);
-	});
-}
+scrobbles.pipe(progress).pipe(convert).pipe(out)
 
 function exit (msg) {
-	console.error(msg);
-	process.exit(1);
-}
-
-function makeCSVStream () {
-	return (function () {
-		var first = true;
-		return through.obj(function (track, enc, callback) {
-			if (first) {
-				first = false;
-				this.push([ 'Time', 'Artist', 'Title', 'Album',
-					'Track MBID', 'Artist MBID', 'Album MBID'
-				].join('\t') + EOL)
-			}
-
-			var data = [ track.time, track.artist, track.title, track.album,
-			   track.trackMBID, track.artistMBID, track.albumMBID];
-
-			data = data.map(function (field) {
-				return String(field).replace(/\t/g, ' ');
-			});
-
-			this.push(data.join('\t') + EOL);
-			callback();
-		});
-	})();
+  console.error(msg)
+  process.exit(1)
 }
 
 function makeLDJSONStream () {
-	return through.obj(function (track, enc, callback) {
-		this.push(JSON.stringify(track) + EOL);
-		callback();
-	});
+  return through.obj(function (track, enc, callback) {
+    this.push(JSON.stringify(track) + EOL)
+    callback()
+  })
 }
 
 function makeProgressStream () {
-	return (function () {
-		var bar;
-		var started = false;
+  return (function () {
+    var bar
+    var started = false
 
-		return through.obj(function (track, enc, callback) {
-			if (!started && scrobbles.totalTracks) {
-				started = true;
-				bar = new ProgressBar('  ' + path.basename(outFile) + ' [:bar] :percent :etas', {
-					complete: '=',
-					incomplete: ' ',
-					width: 20,
-					total: scrobbles.totalTracks
-				});
-			}
+    return through.obj(function (track, enc, callback) {
+      if (!started && scrobbles.totalTracks) {
+        started = true
+        bar = new ProgressBar('  ' + path.basename(outFile) + ' [:bar] :percent :etas', {
+          complete: '=',
+          incomplete: ' ',
+          width: 20,
+          total: scrobbles.totalTracks
+        })
+      }
 
-			bar.tick();
+      bar.tick()
 
-			this.push(track);
-			callback();
-		});
-	})();
+      this.push(track)
+      callback()
+    })
+  })()
 }

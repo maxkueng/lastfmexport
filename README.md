@@ -1,32 +1,33 @@
-lastfmexport
-============
+# lastfmexport
 
 A command-line utility to export or backup your Last.fm scrobble history to file.
 
-### Installation
+## Installation
 
 ```bash
 npm install lastfmexport -g
 ```
 
-### Usage
+## Usage
 
-`lastfmexport --help`
+```
+$ lastfmexport --help
+usage: lastfmexport [-h] [-v] -u USER [-f {ldjson,csv,tsv}] [-s START] [-e END]
+              [-o OUTFILE]
 
-`lastfmexport -u <username> [options]`
 
+Command-line utility to export a Last.fm user's scrobbles to file
 
-__Options:__
-
- - `-h  or --help`: Show this help message
- - `-u  or --user`: Last.fm username
- - `-f  or --format`: (optional) Output format: ldjson or csv. Default: ldjson
- - `-s  or --start`: (optional) ISO date string in UTC of the first (oldest) scrobble.
- - `-e  or --end`: (optional) ISO date string in UTC of the latest scrobble.
- - `-o  or --outfile`: (optional )Output file path. Specifying '-' will print to stdout. Default: `username.format`
-
-### License
-
-MIT License
-
-Copyright (c) 2014 Max Kueng (http://maxkueng.com/)
+Optional arguments:
+  -h, --help            Show this help message and exit.
+  -v, --version         Show program's version number and exit.
+  -u USER, --user USER  Last.fm username.
+  -f {ldjson,csv,tsv}, --format {ldjson,csv,tsv}
+                        Output format, defaults to ldjson.
+  -s START, --start START
+                        ISO date string in UTC of the first scrobble.
+  -e END, --end END     ISO date string in UTC of the latest scrobble.
+  -o OUTFILE, --outfile OUTFILE
+                        Output file path. Specifying "-" will print to stdout.
+                         Defaults to "<username>.<format>".
+```
