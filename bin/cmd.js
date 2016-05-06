@@ -55,10 +55,10 @@ var startTime = conf.start ? moment.utc(conf.start) : null;
 var endTime = conf.end ? moment.utc(conf.end) : null;
 
 if (startTime && !startTime.isValid()) {
-	return exit('Invalid start time. Try -h for help.');
+	exit('Invalid start time. Try -h for help.');
 }
 if (endTime && !endTime.isValid()) {
-	return exit('Invalid end time. Try -h for help.');
+	exit('Invalid end time. Try -h for help.');
 }
 
 // Streams
