@@ -1,16 +1,16 @@
 {
   "name": "lastfmexport",
-  "description": "Command-line utility to export a Last.fm user's scrobbles to file",
+  "description": "Command-line utility to export a Last.fm user's scrobbles",
   "version": "1.0.0",
   "author": "Max Kueng <me@maxkueng.com> (http://maxkueng.com/)",
   "bin": {
     "lastfmexport": "bin/cmd.js"
   },
   "dependencies": {
+    "argparse": "^1.0.7",
     "lastfmexportstream": "0.0.4",
     "moment": "^2.6.0",
     "progress": "^1.1.5",
-    "rucola": "^1.1.0",
     "through2": "^0.4.2"
   },
   "keywords": [
